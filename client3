@@ -1,0 +1,211 @@
+
+using System;
+using System.Diagnostics;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Text;
+
+namespace MySocketsApp
+{
+    class Program
+    {
+        private static int _score = 0;
+        private static bool _starting = true;
+        public static bool ReceiveStatement(Statement stat)
+        {
+            if (stat.PlayMove(false))
+            {
+                Console.WriteLine("You succesfully negated your enemy's statement!");
+                return true;
+            }
+            Console.WriteLine("You failed to negate your enemy's statement. You lost!");
+            return false;
+        }
+        public static void SendStatement(Socket sender)
+        {
+            Console.WriteLine("! for not, & for and, | for or, > for imply, = for equivalence(iff), brackets as usual");
+            string statementTokens;
+            statementTokens = Console.ReadLine() ?? "";
+            var statement = new Statement(statementTokens);
+            if (statement.PlayMove(true) && !statement.StatementInvalid)
+            {
+                Console.WriteLine("Validation successful");
+                byte[] msg = Encoding.ASCII.GetBytes(String.Join("", statement.Tokens));
+                sender.Send(msg);
+            }
+            else
+            {
+                Console.WriteLine("Your statement was either invalid or you failed to validate it. You lose!");
+                byte[] msg = Encoding.ASCII.GetBytes(_score.ToString());
+                byte[] msg2 = Encoding.ASCII.GetBytes("makenewstatement");
+                sender.Send(msg);
+                sender.Send(msg2);
+            }
+
+        }
+        public static void StartClient()
+        {
+            byte[] bytes = new byte[1024];
+
+            try
+            {
+                // Connect to a Remote server
+                // Get Host IP Address that is used to establish a connection
+                // In this case, we get one IP address of localhost that is IP : 127.0.0.1
+                // If a host has multiple addresses, you will get a list of addresses
+                IPHostEntry host = Dns.GetHostEntry("localhost");
+                IPAddress ipAddress = host.AddressList[0];
+                IPEndPoint remoteEP = new IPEndPoint(ipAddress, 11000);
+
+                // Create a TCP/IP  socket.
+                Socket sender = new Socket(ipAddress.AddressFamily,
+                    SocketType.Stream, ProtocolType.Tcp);
+
+                // Connect the socket to the remote endpoint. Catch any errors.
+                try
+                {
+                    // Connect to Remote EndPoint
+                    sender.Connect(remoteEP);
+
+                    Console.WriteLine("Socket connected to {0}",
+                        sender.RemoteEndPoint.ToString());
+                    if (_starting)
+                    {
+                        SendStatement(sender);
+                        _starting = false;
+                    }
+
+                    
+                    // Encode the data string into a byte array.
+                    //byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
+
+                    // Send the data through the socket.
+                    //int bytesSent = sender.Send(msg);
+
+                    // Receive the response from the remote device.
+                    int bytesRec = sender.Receive(bytes);
+                    //Console.WriteLine("Echoed test = {0}",
+                        //Encoding.ASCII.GetString(bytes, 0, bytesRec));
+
+                    // Release the socket.
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+
+                }
+                catch (ArgumentNullException ane)
+                {
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+                catch (SocketException se)
+                {
+                    Console.WriteLine("SocketException : {0}", se.ToString());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+        public static int Main(string[] args)
+        {
+            //SocketIOClient client = new SocketIOClient(new SocketIOClientOption(EngineIOScheme.http, "localhost", 9001,Reconnection:true));
+            StartClient();
+            return 0;
+            /*InitEventHandlers(client);
+
+            client.Connect();
+            Console.WriteLine("Input /exit to close connection.");
+
+            string line;
+            while (!(line = Console.ReadLine())?.Trim()?.ToLower()?.Equals("/exit") ?? false)
+            {
+                client.Emit("input", line);
+            }
+
+            client.Close();
+
+            Console.WriteLine("Press any key to continue...");
+            Console.Read();*/
+        }
+
+        /*static void InitEventHandlers(SocketIOClient client)
+        {
+            client.On(SocketIOEvent.CONNECTION, () =>
+            {
+                Console.WriteLine("Connected!");
+                client.Emit("make new statement");
+            });
+
+            client.On(SocketIOEvent.DISCONNECT, () =>
+            {
+
+                Console.WriteLine();
+                Console.WriteLine("Disconnected!");
+            });
+
+            client.On("echo", () =>
+            {
+                //Console.WriteLine("Player 1 : " + (Data[0].Type == JTokenType.Bytes ? BitConverter.ToString(Data[0].ToObject<byte[]>()) : Data[0]));
+                Console.WriteLine("Player 1:" + Data[0]);
+                Console.WriteLine();
+                Debug.WriteLine("sus");
+            });
+
+            client.On("echo array", (Data) =>
+            {
+                Console.WriteLine("Echo1 : " + Data[0]);
+                Console.WriteLine("Echo2 : " + Data[1]);
+            });
+            client.On("make new statement", () =>
+            {
+
+                SendStatement(client);
+                //Console.Write("Player 2: " + data[0]);
+                /*foreach (JToken token in data)
+                {
+                    Console.Write(token + " ");
+                    //Console.WriteLine("Echo : " + (data[0].Type == JTokenType.Bytes ? BitConverter.ToString(data[0].ToObject<byte[]>()) : data[0]));
+               }
+
+
+                //socket.Emit("echo", data);
+            });
+            client.On("statement", (symbols) =>
+            {
+                string symbolString = "";
+                foreach (JToken token in symbols)
+                {
+                    symbolString += token + " ";
+                }
+                if (ReceiveStatement(new Statement(symbolString)))
+                {
+                    SendStatement(client);
+                }
+                else
+                {
+                    client.Emit("you win", _score);
+                    client.Emit("make new statement");
+                }
+            });
+            client.On(SocketIOEvent.DISCONNECT, () =>
+            {
+                
+
+                Console.WriteLine("Client disconnected!");
+            });
+            client.On("you win", (data) =>
+            {
+                Console.WriteLine("Other player lost this round. You win 1 point");
+                _score++;
+                Console.WriteLine($"You have {_score} points, Player 2 has {data[0]} points");
+
+            });*/
+        
+    }
+}
