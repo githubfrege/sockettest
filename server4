@@ -1,0 +1,173 @@
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Net.Sockets;
+using System.Net;
+using System.Linq;
+
+namespace MySocketsApp
+{
+    class Server
+    {
+        private static int _score = 0;
+       
+        /*public static bool ReceiveStatement(Statement stat)
+        {
+            if (stat.PlayMove(false))
+            {
+                Console.WriteLine("You succesfully negated your enemy's statement!");
+                return true;
+            }
+            Console.WriteLine("You failed to negate your enemy's statement. You lost!");
+            return false;
+        }
+        public static void SendStatement(SocketIOSharp.Server.Client.SocketIOSocket socket)
+        {
+            Console.WriteLine("! for 'not', & for 'and', | for 'or', > for 'imply', = for equivalence(iff), brackets as usual");
+            string statementTokens;
+        statementTokens = Console.ReadLine() ?? "";
+            Console.WriteLine("statement tokens " + statementTokens);
+            var statement = new Statement(statementTokens);
+            if (statement.PlayMove(true) && !statement.StatementInvalid)
+            {
+                Console.WriteLine("Validation successful");
+                socket.Emit("statement", String.Join("",statement.Tokens));
+            }
+            else
+            {
+                Console.WriteLine("Your statement was either invalid or you failed to validate it. You lose!");
+                socket.Emit("you win", _score);
+                socket.Emit("make new statement");
+            }
+           
+        }*/
+  
+        public static void StartServer()
+        {
+            IPHostEntry host = Dns.GetHostEntry("localhost");
+            IPAddress ipAddress = host.AddressList[0];
+            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
+            try
+            {
+                Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                listener.Bind(localEndPoint);
+                listener.Listen(10);
+                Console.WriteLine("Waiting for a connection...");
+                Socket handler = listener.Accept();
+                string data = null;
+                byte[] bytes = null;
+
+                while (true)
+                {
+                    bytes = new byte[1024];
+                    int bytesRec = handler.Receive(bytes);
+                    data = Encoding.ASCII.GetString(bytes, 0, bytesRec);
+                    if (data.All(char.IsDigit))//if (data.IndexOf("<EOF>") > -1)
+                    {
+                        Console.WriteLine($"Other player lost. They have {data} points, and you have {++_score} points");
+                        GameFunctions.SendStatement(handler,_score);
+                        
+                    }
+                    else
+                    {
+                        if (GameFunctions.ReceiveStatement(new Statement(data)))
+                        {
+                            GameFunctions.SendStatement(handler,_score);
+                        }
+                        else
+                        {
+                            GameFunctions.SendLoss(handler,_score);
+                        }
+                    }
+                }
+                Console.WriteLine("Text received : {0}", data);
+
+                byte[] msg = Encoding.ASCII.GetBytes(data);
+                handler.Send(msg);
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+            Console.WriteLine("\n Press any key to continue...");
+            Console.ReadKey();
+        }
+        public static int Main(string[] args)
+        {
+            StartServer();
+            return 0;
+            /*using (SocketIOServer server = new SocketIOServer(new SocketIOServerOption(9001,PingTimeout:26000)))
+            {
+                Console.WriteLine("Listening on " + server.Option.Port);
+                server.OnConnection((socket) =>
+                {
+                    Console.WriteLine("Client connected!");
+
+                    socket.On("make new statement", ()=>
+                    {
+
+                        SendStatement(socket);
+                        //Console.Write("Player 2: " + data[0]);
+                        /*foreach (JToken token in data)
+                        {
+                            Console.Write(token + " ");
+                            //Console.WriteLine("Echo : " + (data[0].Type == JTokenType.Bytes ? BitConverter.ToString(data[0].ToObject<byte[]>()) : data[0]));
+                       }
+
+
+                        //socket.Emit("echo", data);
+                    });
+                    socket.On("statement", (symbols) =>
+                    {
+                        string symbolString = "";
+                        foreach (JToken token in symbols)
+                        {
+                            symbolString += token + " ";
+                        }
+                        if (ReceiveStatement(new Statement(symbolString)))
+                        {
+                            SendStatement(socket);
+                        }
+                        else
+                        {
+                            socket.Emit("you win", _score);
+                            socket.Emit("make new statement");
+                        }
+                    });
+                    socket.On(SocketIOEvent.DISCONNECT, () =>
+                    {
+                        Console.WriteLine("Client disconnected!");
+                    });
+                    socket.On("you win", (data) =>
+                    {
+                        Console.WriteLine("Other player lost this round. You win 1 point");
+                        _score++;
+                        Console.WriteLine($"You have {_score} points, Player 2 has {data[0]} points");
+
+                    });
+                    //socket.Emit("echo", new byte[] { 0, 1, 2, 3, 4, 5 });
+                });
+                
+                server.Start();
+
+               Console.WriteLine("Input /exit to exit program.");
+                string line;
+
+                while (true)//while (!(line = Console.ReadLine())?.Trim()?.ToLower()?.Equals("/exit") ?? false)
+                {
+                    server.Emit("echo");
+                }*/
+                
+            
+
+            //Console.WriteLine("Press enter to continue...");
+            //Console.Read();
+        }
+    }
+}
