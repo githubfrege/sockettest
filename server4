@@ -1,0 +1,51 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
+
+namespace MySocketsApp
+{
+    static class GameFunctions
+    {
+        public static bool ReceiveStatement(Statement statement)
+        {
+            Console.WriteLine("Player 1 sends " + String.Join("", statement.Tokens));
+            if (statement.PlayMove(false))
+            {
+                Console.WriteLine("You succesfully negated your enemy's statement!");
+                return true;
+            }
+            Console.WriteLine("You failed to negate your enemy's statement. You lost!");
+            return false;
+        }
+        public static void SendStatement(Socket sock,int score)
+        {
+            Console.WriteLine("! for not, & for and, | for or, > for imply, = for equivalence(iff), brackets as usual");
+            string statementTokens;
+            statementTokens = Console.ReadLine() ?? "";
+            var statement = new Statement(statementTokens);
+            if (statement.PlayMove(true) && !statement.StatementInvalid)
+            {
+                Console.WriteLine("Validation successful");
+                byte[] msg = Encoding.ASCII.GetBytes(statementTokens);
+                sock.Send(msg);
+            }
+            else
+            {
+                /*Console.WriteLine("Your statement was either invalid or you failed to validate it. You lose!");
+                byte[] msg = Encoding.ASCII.GetBytes(_score.ToString());
+                sender.Send(msg);*/
+                SendLoss(sock, score);
+            }
+
+        }
+        public static void SendLoss(Socket sender, int score)
+        {
+            byte[] msg = Encoding.ASCII.GetBytes(score.ToString());
+            sender.Send(msg);
+        }
+    }
+}
